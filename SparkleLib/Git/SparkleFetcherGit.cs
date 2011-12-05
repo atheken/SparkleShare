@@ -268,6 +268,28 @@ namespace SparkleLib {
 
             writer.Close ();
         }
+
+
+        public override void DisableHostKeyCheckingForHost (string host)
+        {
+            string git_ssh      = Environment.GetEnvironmentVariable ("GIT_SSH").Trim ();
+            string checking_arg = " -o StrictHostKeyChecking=no";
+
+            if (!git_ssh.EndsWith (checking_arg))
+                git_ssh += checking_arg;
+
+            Environment.SetEnvironmentVariable ("GIT_SSH", git_ssh);
+        }
+
+
+        public override void EnableHostKeyCheckingForHost (string host)
+        {
+            string git_ssh      = Environment.GetEnvironmentVariable ("GIT_SSH").Trim ();
+            string checking_arg = " -o StrictHostKeyChecking=no";
+
+            git_ssh.Replace (checking_arg, "");
+            Environment.SetEnvironmentVariable ("GIT_SSH", git_ssh);
+        }
     }
 
     public class SparkleGit : Process {

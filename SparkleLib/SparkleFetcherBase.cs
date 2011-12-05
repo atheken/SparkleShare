@@ -29,6 +29,9 @@ namespace SparkleLib {
     // Sets up a fetcher that can get remote folders
     public abstract class SparkleFetcherBase {
 
+        public abstract void DisableHostKeyCheckingForHost (string host);
+        public abstract void EnableHostKeyCheckingForHost (string host);
+
         public delegate void StartedEventHandler ();
         public delegate void FinishedEventHandler (string [] warnings);
         public delegate void FailedEventHandler ();
@@ -44,7 +47,6 @@ namespace SparkleLib {
 
         private Thread thread;
 
-        
         public SparkleFetcherBase (string server, string remote_folder, string target_folder)
         {
             this.target_folder = target_folder;
@@ -126,96 +128,6 @@ namespace SparkleLib {
         protected void OnProgressChanged (double percentage) {
             if (ProgressChanged != null)
                 ProgressChanged (percentage);    
-        }
-    
-        
-        private void DisableHostKeyCheckingForHost (string host)
-        {
-            string path = SparkleConfig.DefaultConfig.HomePath;
-
-            if (!(SparkleBackend.Platform == PlatformID.Unix ||
-                  SparkleBackend.Platform == PlatformID.MacOSX)) {
-
-                path = Environment.ExpandEnvironmentVariables ("%HOMEDRIVE%%HOMEPATH%");
-            }
-
-            string ssh_config_path      = Path.Combine (path, ".ssh");
-            string ssh_config_file_path = SparkleHelpers.CombineMore (path, ".ssh", "config");
-            string ssh_config           = Environment.NewLine + "# <SparkleShare>" +
-                                          Environment.NewLine + "Host " + host +
-                                          Environment.NewLine + "\tStrictHostKeyChecking no" +
-                                          Environment.NewLine + "# </SparkleShare>";
-
-            if (!Directory.Exists (ssh_config_path))
-                Directory.CreateDirectory (ssh_config_path);
-
-            if (File.Exists (ssh_config_file_path)) {
-                TextWriter writer = File.AppendText (ssh_config_file_path);
-                writer.WriteLine (ssh_config);
-                writer.Close ();
-
-            } else {
-                File.WriteAllText (ssh_config_file_path, ssh_config);
-            }
-
-            //UnixFileSystemInfo file_info = new UnixFileInfo (ssh_config_file_path);
-            //file_info.FileAccessPermissions = (FileAccessPermissions.UserRead |
-            //                                   FileAccessPermissions.UserWrite); TODO
-
-            SparkleHelpers.DebugInfo ("Fetcher", "Disabled host key checking " + host);
-        }
-        
-
-        private void EnableHostKeyCheckingForHost (string host)
-        {
-            string path = SparkleConfig.DefaultConfig.HomePath;
-
-            if (SparkleBackend.Platform != PlatformID.Unix &&
-                SparkleBackend.Platform != PlatformID.MacOSX) {
-
-                path = Environment.ExpandEnvironmentVariables ("%HOMEDRIVE%%HOMEPATH%");
-            }
-
-            string ssh_config_file_path = SparkleHelpers.CombineMore (path, ".ssh", "config");
-
-            if (File.Exists (ssh_config_file_path)) {
-                string current_ssh_config = File.ReadAllText (ssh_config_file_path);
-
-                current_ssh_config = current_ssh_config.Trim ();
-                string [] lines = current_ssh_config.Split (Environment.NewLine.ToCharArray ());
-                string new_ssh_config = "";
-                bool in_sparkleshare_section = false;
-
-                foreach (string line in lines) {
-                    if (line.StartsWith ("# <SparkleShare>")) {
-                        in_sparkleshare_section = true;
-                        continue;
-                    }
-
-                    if (line.StartsWith ("# </SparkleShare>")) {
-                        in_sparkleshare_section = false;
-                        continue;
-                    }
-
-                    if (in_sparkleshare_section)
-                        continue;
-
-                    new_ssh_config += line + Environment.NewLine;
-                }
-
-                if (string.IsNullOrEmpty (new_ssh_config.Trim ())) {
-                    File.Delete (ssh_config_file_path);
-
-                } else {
-                    File.WriteAllText (ssh_config_file_path, new_ssh_config.Trim ());
-
-                    //UnixFileSystemInfo file_info = new UnixFileInfo (ssh_config_file_path);
-                    //file_info.FileAccessPermissions = (FileAccessPermissions.UserRead |
-                    //                                   FileAccessPermissions.UserWrite); TODO
-                }
-            }
-
-            SparkleHelpers.DebugInfo ("Fetcher", "Enabled host key checking for " + host);
         }
 
 
