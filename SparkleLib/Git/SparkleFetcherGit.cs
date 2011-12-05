@@ -280,6 +280,21 @@ namespace SparkleLib {
             StartInfo.RedirectStandardOutput = true;
             StartInfo.UseShellExecute        = false;
             StartInfo.WorkingDirectory       = path;
+
+            // Set the GIT_SSH environment variable to
+            // always point to our keys
+            string git_ssh   = Environment.GetEnvironmentVariable ("GIT_SSH").Trim ();
+            string keys_path = Path.Combine (
+                Path.GetDirectoryName (SparkleConfig.DefaultConfig.FullPath),
+                "*.key"
+            );
+
+            if (!string.IsNullOrEmpty (git_ssh))
+                git_ssh += " -i " + keys_path;
+            else
+                git_ssh = "ssh -i " + keys_path;
+
+            Environment.SetEnvironmentVariable ("GIT_SSH", git_ssh);
         }
 
 
@@ -287,6 +302,8 @@ namespace SparkleLib {
         {
             SparkleHelpers.DebugInfo ("Cmd", StartInfo.FileName + " " + StartInfo.Arguments);
             base.Start ();
+
+            // TODO: StrictHostKeyChecking
         }
     }
 }
